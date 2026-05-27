@@ -12,9 +12,6 @@ export function initUI() {
     joystickZone: document.getElementById("joystick-zone"),
     joystickKnob: document.getElementById("joystick-knob"),
     buttonZone: document.getElementById("button-zone"),
-    flashToggle: document.getElementById("flash-toggle"),
-    flashSlider: document.getElementById("flash-slider"),
-    flashPercent: document.getElementById("flash-percent"),
     driveSensitivity: document.getElementById("drive-sensitivity"),
     turnSensitivity: document.getElementById("turn-sensitivity"),
   };
@@ -43,11 +40,10 @@ export function setMode(elements, mode) {
   elements.buttonZone.style.display = isJoystick ? "none" : "flex";
 }
 
-export function updateFlashUI(elements, isOn, level) {
-  elements.flashToggle.textContent = isOn ? "On" : "Off";
-  elements.flashToggle.classList.toggle("ghost", !isOn);
-  elements.flashPercent.textContent = `${Math.round((level / 255) * 100)}%`;
-  elements.flashSlider.value = String(level);
+export function updateFlashUI(elements, level) {
+  const percent = Math.round((level / 255) * 100);
+  elements.brightnessSlider.value = percent;
+  elements.brightnessSlider.style.setProperty("--slider-value", percent + "%");
 }
 
 export function bindHoldButtons(buttons, onPress, onRelease) {

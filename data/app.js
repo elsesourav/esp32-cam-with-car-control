@@ -16,7 +16,7 @@ const wsClient = new WsClient(wsUrl);
 const state = {
   mode: "joystick",
   joystick: { x: 0, y: 0, active: false },
-  flashOn: false,
+  
   flashLevel: 0,
   cameraLive: false,
   drive: 1,
@@ -56,7 +56,7 @@ function sendSettings() {
 function sendFlash() {
   wsClient.send(
     buildMessage("flash", {
-      on: state.flashOn ? 1 : 0,
+      on: state.flashLevel > 0 ? 1 : 0,
       level: state.flashLevel,
     }),
   );
@@ -87,7 +87,7 @@ wsClient.connect();
 setMode(elements, state.mode);
 setConnectionStatus(elements, false);
 setCameraStatus(elements, false);
-updateFlashUI(elements, state.flashOn, state.flashLevel);
+updateFlashUI(elements, state.flashLevel);
 
 createJoystick(elements.joystickZone, elements.joystickKnob, {
   onMove: ({ x, y }) => {
@@ -146,9 +146,10 @@ elements.cameraStop.addEventListener("click", () => {
 });
 
 elements.brightnessSlider.addEventListener("input", (e) => {
-  const value = e.target.value;
-  e.target.style.setProperty("--slider-value", value + "%");
-  // Future use: send brightness update
+  const percent = Number(e.target.value);
+  state.flashLevel = Math.round((percent / 100) * 255);
+  updateFlashUI(elements, state.flashLevel);
+  sendFlash();
 });
 
 // Initialize brightness visual state
@@ -157,17 +158,9 @@ elements.brightnessSlider.style.setProperty(
   elements.brightnessSlider.value + "%",
 );
 
-elements.flashToggle.addEventListener("click", () => {
-  state.flashOn = !state.flashOn;
-  updateFlashUI(elements, state.flashOn, state.flashLevel);
-  sendFlash();
-});
 
-elements.flashSlider.addEventListener("input", (event) => {
-  state.flashLevel = Number(event.target.value);
-  updateFlashUI(elements, state.flashOn, state.flashLevel);
-  sendFlash();
-});
+
+
 
 elements.driveSensitivity.addEventListener("input", (event) => {
   state.drive = Number(event.target.value);

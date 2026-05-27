@@ -83,9 +83,9 @@ _Note: Because we use an embedded PROGMEM bundle for the data, you do **NOT** ne
   - `motor_control.*` / `movement_parser.*` - PWM conversion and joystick math.
   - `camera_control.*` - ESP-CAM initialization and HTTP stream setup.
   - `websocket_handler.*` - Runs the ESP32 HTTPD server, serves UI from memory, and brokers the control WebSocket.
-  - `embedded_files.h` - Contains the bundled C++ arrays for the UI (created by `create_embedded.py`).
+  - `embedded_files.h` - Contains the bundled C++ arrays for the UI (created by `create_embedded.js`).
 - **`data/`**
-  - Contains the raw `index.html`, `style.css`, and `.js` source files. (Run `python3 src/create_embedded.py` if you ever edit these to update the header).
+  - Contains the raw `index.html`, `style.css`, and `.js` source files. (Run `node src/create_embedded.js` if you ever edit these to update the header).
 
 ---
 
