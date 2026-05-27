@@ -5,7 +5,8 @@ import {
   setCameraStatus,
   setConnectionStatus,
   setMode,
-  updateFlashUI,
+  updateCustomSlider,
+  showConfirmPopup,
 } from "./ui.js";
 import { WsClient, buildMessage } from "./websocket.js";
 
@@ -16,11 +17,12 @@ const wsClient = new WsClient(wsUrl);
 const state = {
   mode: "joystick",
   joystick: { x: 0, y: 0, active: false },
-  
   flashLevel: 0,
   cameraLive: false,
   drive: 1,
   turn: 1,
+  fwdPower: 180,
+  bwdPower: 180,
 };
 
 function sendMoveJoystick() {
@@ -38,7 +40,7 @@ function sendMoveDir(dir) {
     buildMessage("move", {
       mode: "button",
       dir,
-      speed: 180,
+      speed: (dir === "BACKWARD") ? state.bwdPower : state.fwdPower,
       turn: 120,
     }),
   );
@@ -69,12 +71,10 @@ function sendCamera(action) {
 function setCameraStream(enabled) {
   state.cameraLive = enabled;
   setCameraStatus(elements, enabled);
-  const streamElement = document.getElementById("camera-stream");
-
   if (enabled) {
-    streamElement.src = `http://${location.hostname}:81/stream?t=${Date.now()}`;
+    elements.cameraStream.src = `http://${location.hostname}:81/stream?t=${Date.now()}`;
   } else {
-    streamElement.src = "";
+    elements.cameraStream.src = "";
   }
 }
 
@@ -82,18 +82,20 @@ wsClient.onStatus = (online) => {
   setConnectionStatus(elements, online);
 };
 
+// Initialize component visuals
 wsClient.connect();
-
 setMode(elements, state.mode);
 setConnectionStatus(elements, false);
 setCameraStatus(elements, false);
-updateFlashUI(elements, state.flashLevel);
+updateCustomSlider(elements.brightnessSlider, state.flashLevel);
+updateCustomSlider(elements.driveSensitivity, ((state.drive - 0.4)/(1.5 - 0.4))*100);
+updateCustomSlider(elements.turnSensitivity, ((state.turn - 0.4)/(1.5 - 0.4))*100);
 
 createJoystick(elements.joystickZone, elements.joystickKnob, {
   onMove: ({ x, y }) => {
     state.joystick.active = true;
-    state.joystick.x = x;
-    state.joystick.y = y;
+    state.joystick.x = Math.round(x * (state.fwdPower / 255));
+    state.joystick.y = Math.round(y * (state.fwdPower / 255));
   },
   onEnd: () => {
     state.joystick.active = false;
@@ -145,29 +147,49 @@ elements.cameraStop.addEventListener("click", () => {
   sendCamera("stop");
 });
 
+// Slider handlers
 elements.brightnessSlider.addEventListener("input", (e) => {
   const percent = Number(e.target.value);
   state.flashLevel = Math.round((percent / 100) * 255);
-  updateFlashUI(elements, state.flashLevel);
+  updateCustomSlider(elements.brightnessSlider, percent);
   sendFlash();
 });
 
-// Initialize brightness visual state
-elements.brightnessSlider.style.setProperty(
-  "--slider-value",
-  elements.brightnessSlider.value + "%",
-);
-
-
-
-
-
-elements.driveSensitivity.addEventListener("input", (event) => {
-  state.drive = Number(event.target.value);
+elements.driveSensitivity.addEventListener("input", (e) => {
+  const val = Number(e.target.value);
+  state.drive = val;
+  const min = 0.4, max = 1.5;
+  updateCustomSlider(elements.driveSensitivity, ((val - min) / (max - min)) * 100);
   sendSettings();
 });
 
-elements.turnSensitivity.addEventListener("input", (event) => {
-  state.turn = Number(event.target.value);
+elements.turnSensitivity.addEventListener("input", (e) => {
+  const val = Number(e.target.value);
+  state.turn = val;
+  const min = 0.4, max = 1.5;
+  updateCustomSlider(elements.turnSensitivity, ((val - min) / (max - min)) * 100);
   sendSettings();
+});
+
+// Segmented toggles with confirm popup
+elements.fwdPowerGroup.forEach(btn => {
+  btn.addEventListener("click", () => {
+    if(btn.classList.contains("active")) return;
+    showConfirmPopup(elements, () => {
+      elements.fwdPowerGroup.forEach(b => b.classList.remove("active"));
+      btn.classList.add("active");
+      state.fwdPower = parseInt(btn.dataset.val);
+    });
+  });
+});
+
+elements.bwdPowerGroup.forEach(btn => {
+  btn.addEventListener("click", () => {
+    if(btn.classList.contains("active")) return;
+    showConfirmPopup(elements, () => {
+      elements.bwdPowerGroup.forEach(b => b.classList.remove("active"));
+      btn.classList.add("active");
+      state.bwdPower = parseInt(btn.dataset.val);
+    });
+  });
 });
