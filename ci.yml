@@ -1,0 +1,6 @@
+fqbn:
+  esp32:
+    - espressif:esp32:esp32:PSRAM=enabled,PartitionScheme=custom,FlashMode=dio
+
+requires:
+  - CONFIG_CAMERA_TASK_STACK_SIZE=[0-9]+

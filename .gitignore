@@ -1,0 +1,31 @@
+# Arduino
+*.elf
+*.hex
+*.bin
+*.map
+*.a
+*.o
+*.out
+*.sym
+
+# PlatformIO
+.pio/
+.pioenvs/
+.piolibdeps/
+.vscode/
+
+# Build and IDE
+build/
+*.build/
+.metadata/
+.idea/
+
+# ESP32 specific
+*.bin
+*.part
+*.csv
+partitions.csv
+embedded_files.h
+
+# macOS
+.DS_Store
