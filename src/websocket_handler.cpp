@@ -5,7 +5,8 @@
 #include "camera_control.h"
 #include "config.h"
 #include "flashlight_control.h"
-#include "serial_bridge.h"
+#include "motor_control.h"
+#include "mpu6050_sensor.h"
 #include "movement_parser.h"
 
 #include "esp_http_server.h"
@@ -106,15 +107,12 @@ uint32_t g_last_command_ms = 0;
 
 void apply_movement_command(const MovementCommand &cmd) {
   if (!cmd.valid) {
-    Serial.println("[UART Warning] Movement command was invalid, discarding!");
+    Serial.println("[MOTOR Warning] Movement command was invalid, discarding!");
     return;
   }
   
-  Serial.print("[UART] Sending to bridge: ");
-  Serial.println(cmd.serial_cmd);
-  
-  // Forward the serial command to the Arduino Uno.
-  serial_bridge_send(cmd.serial_cmd);
+  // Forward the speeds directly to the local ESP32 motor controller
+  motor_control_set(cmd.left_speed, cmd.right_speed);
   g_last_command_ms = millis();
 }
 
@@ -131,18 +129,10 @@ void handle_settings(const char *payload) {
   if (movement_get_value(payload, "drive", drive_val, sizeof(drive_val))) {
     float drive = atof(drive_val);
     g_settings.drive = constrain(drive, 0.1f, 1.5f);
-    // Forward drive sensitivity to Arduino
-    char cmd[32];
-    snprintf(cmd, sizeof(cmd), "DRIVE:%.2f", g_settings.drive);
-    serial_bridge_send(cmd);
   }
   if (movement_get_value(payload, "turn", turn_val, sizeof(turn_val))) {
     float turn = atof(turn_val);
     g_settings.turn = constrain(turn, 0.1f, 1.5f);
-    // Forward turn sensitivity to Arduino
-    char cmd[32];
-    snprintf(cmd, sizeof(cmd), "TURN:%.2f", g_settings.turn);
-    serial_bridge_send(cmd);
   }
 }
 
@@ -180,7 +170,8 @@ void broadcast_telemetry() {
 #ifdef CONFIG_HTTPD_WS_SUPPORT
   if (!g_httpd) return;
 
-  const BridgeTelemetry *tel = serial_bridge_get_telemetry();
+  const SensorTelemetry *tel = mpu6050_get_telemetry();
+  const char *motor_state = motor_control_get_state();
 
   // Build the telemetry payload as URL-encoded string (same format the
   // client already understands).
@@ -188,7 +179,7 @@ void broadcast_telemetry() {
   snprintf(payload, sizeof(payload),
            "type=telemetry&x=%.2f&y=%.2f&z=%.2f&a=%.2f&tilt=%s&state=%s&conn=%d",
            tel->accel_x, tel->accel_y, tel->accel_z, tel->accel_total,
-           tel->tilt, tel->state, tel->connected ? 1 : 0);
+           tel->tilt, motor_state, tel->connected ? 1 : 0);
 
   // Only broadcast if data has changed.
   if (strcmp(payload, g_last_telemetry_str) == 0) {
@@ -335,7 +326,7 @@ void websocket_handler_tick(uint32_t now_ms) {
   if (now_ms - g_last_command_ms > config::kCommandTimeoutMs) {
     // Only send once after timeout expires, not every tick.
     if (!s_timeout_sent) {
-      serial_bridge_send("MOVE:S");
+      motor_control_stop();
       s_timeout_sent = true;
     }
   } else {

@@ -14,25 +14,35 @@ constexpr uint16_t kHttpPort = 80;
 constexpr uint16_t kStreamPort = 81;
 constexpr char kWsPath[] = "/ws";
 
-// --- UART Bridge to Arduino Uno ---
-// Uses ESP32 UART2 on GPIO 14 (TX) and GPIO 15 (RX).
-// These pins are free on the ESP32-CAM header and do not conflict
-// with the camera, PSRAM, or flashlight.
-constexpr int kBridgeTxPin = 14;
-constexpr int kBridgeRxPin = 15;
-constexpr uint32_t kBridgeBaud = 38400;
+// --- Motor Control (L298N) ---
+// Left motor (Motor A)
+constexpr int kMotorLeftIn1  = 12;  // GPIO 12 → L298N IN1 (forward, must be LOW at boot)
+constexpr int kMotorLeftIn2  = 13;  // GPIO 13 → L298N IN2 (backward)
+
+// Right motor (Motor B)
+constexpr int kMotorRightIn3 = 2;   // GPIO 2  → L298N IN3 (forward, must be LOW for flash)
+constexpr int kMotorRightIn4 = 3;   // GPIO 3  → L298N IN4 (backward, RX pin - UNPLUG TO FLASH!)
+
+// Motor PWM configuration
+constexpr uint32_t kMotorPwmFreq       = 1000;  // 1 kHz — good for DC motors
+constexpr uint8_t  kMotorPwmResolution = 8;      // 8-bit = 0–255
+constexpr uint8_t  kMotorMaxPwm        = 255;
+
+// PWM smoothing — ramp speed (how fast motors accelerate/decelerate)
+constexpr uint8_t  kMotorRampStep      = 15;     // PWM units per tick
+constexpr uint32_t kMotorRampIntervalMs = 20;    // tick interval (ms)
 
 // Motor command timeout — if no new command arrives within this time,
-// the Arduino Uno will auto-stop motors. The ESP32 also re-sends STOP
-// as a safety net.
+// motors auto-stop as a safety net.
 constexpr uint32_t kCommandTimeoutMs = 400;
 
-// Maximum PWM value sent in serial commands (used for clamping in
-// movement parser).
-constexpr uint8_t kMotorMaxPwm = 255;
+// --- MPU6050 (I2C) ---
+constexpr int kMpuSdaPin  = 14;  // GPIO 14
+constexpr int kMpuSclPin  = 15;  // GPIO 15 (Must be high at boot - pulled up by MPU)
+constexpr uint8_t kMpuAddr = 0x68;
+constexpr uint32_t kMpuReadIntervalMs = 100;  // Read sensor every 100ms
 
-// Telemetry broadcast interval (ms) — how often the ESP32 pushes
-// telemetry updates to connected WebSocket clients.
+// Telemetry broadcast interval (ms)
 constexpr uint32_t kTelemetryBroadcastMs = 200;
 
 // --- Flashlight ---

@@ -121,7 +121,7 @@ bool camera_control_init() {
   config.pin_pwdn = PWDN_GPIO_NUM;
   config.pin_reset = RESET_GPIO_NUM;
   config.xclk_freq_hz = 20000000;
-  config.frame_size = FRAMESIZE_QVGA;
+  config.frame_size = FRAMESIZE_VGA;
   config.pixel_format = PIXFORMAT_RGB565;
   config.grab_mode = CAMERA_GRAB_WHEN_EMPTY;
   config.fb_location = CAMERA_FB_IN_PSRAM;
@@ -141,7 +141,7 @@ bool camera_control_init() {
 
   sensor_t *s = esp_camera_sensor_get();
   if (s && s->id.PID == OV2640_PID) {
-    s->set_framesize(s, FRAMESIZE_QVGA); // Match config frame size
+    s->set_framesize(s, FRAMESIZE_VGA); // Match config frame size
   }
 
   return true;
