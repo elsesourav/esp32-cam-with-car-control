@@ -2,13 +2,14 @@ import { createJoystick } from "./joystick.js";
 import {
   bindHoldButtons,
   initUI,
-  setCameraStatus,
   setConnectionStatus,
   setMode,
   updateCustomSlider,
   showConfirmPopup,
 } from "./ui.js";
 import { WsClient, buildMessage } from "./websocket.js";
+import { updateTelemetry } from "./telemetry.js";
+import { initCamera } from "./camera.js";
 
 const elements = initUI();
 const wsUrl = `ws://${location.host}/ws`;
@@ -111,30 +112,14 @@ function sendFlash() {
   );
 }
 
-function sendCamera(action) {
-  wsClient.send(buildMessage("camera", { action }));
-}
-
-function setCameraStream(enabled) {
-  state.cameraLive = enabled;
-  setCameraStatus(elements, enabled);
-  if (enabled) {
-    elements.cameraStream.src = `http://${location.hostname}:81/stream?t=${Date.now()}`;
-  } else {
-    elements.cameraStream.src = "";
-  }
-}
-
-wsClient.onStatus = (online) => {
-  setConnectionStatus(elements, online);
-};
-
 // --- Initialization ---
 
 wsClient.connect();
 setMode(elements, state.mode);
 setConnectionStatus(elements, false);
-setCameraStatus(elements, false);
+
+// Initialize camera module (handles start/stop/stream)
+const camera = initCamera(elements, wsClient, buildMessage);
 
 // Set initial slider DOM values
 elements.brightnessSlider.value = Math.round((state.flashLevel / 255) * 100);
@@ -148,6 +133,29 @@ updateCustomSlider(elements.turnSensitivity, ((state.turn - 0.4)/(1.5 - 0.4))*10
 updateBadges();
 initSegments();
 updateButtonUI();
+
+// --- WebSocket Callbacks ---
+
+wsClient.onStatus = (online) => {
+  setConnectionStatus(elements, online);
+};
+
+// Handle incoming telemetry messages from ESP32
+wsClient.onMessage = (rawData) => {
+  const params = new URLSearchParams(rawData);
+  const type = params.get("type");
+  if (type === "telemetry") {
+    updateTelemetry(elements, {
+      x: params.get("x"),
+      y: params.get("y"),
+      z: params.get("z"),
+      a: params.get("a"),
+      tilt: params.get("tilt"),
+      state: params.get("state"),
+      conn: params.get("conn"),
+    });
+  }
+};
 
 // --- Input Controls ---
 
@@ -233,17 +241,6 @@ bindHoldButtons(
     }
   }
 );
-
-// Camera
-elements.cameraStart.addEventListener("click", () => {
-  setCameraStream(true);
-  sendCamera("start");
-});
-
-elements.cameraStop.addEventListener("click", () => {
-  setCameraStream(false);
-  sendCamera("stop");
-});
 
 // Slider handlers
 elements.brightnessSlider.addEventListener("input", (e) => {

@@ -23,6 +23,17 @@ export function initUI() {
     valDrive: document.getElementById("val-drive"),
     valTurn: document.getElementById("val-turn"),
     valLight: document.getElementById("val-light"),
+
+    // Telemetry elements
+    telemetrySection: document.getElementById("telemetry-section"),
+    sensorDot: document.getElementById("sensor-dot"),
+    sensorStatus: document.getElementById("sensor-status"),
+    telX: document.getElementById("tel-x"),
+    telY: document.getElementById("tel-y"),
+    telZ: document.getElementById("tel-z"),
+    telAccel: document.getElementById("tel-accel"),
+    telTilt: document.getElementById("tel-tilt"),
+    telState: document.getElementById("tel-state"),
   };
 
   return elements;

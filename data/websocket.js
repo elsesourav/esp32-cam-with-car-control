@@ -6,6 +6,7 @@ export class WsClient {
     this.retryMs = 800;
     this.maxRetryMs = 5000;
     this.onStatus = () => {};
+    this.onMessage = () => {};
   }
 
   connect() {
@@ -22,6 +23,10 @@ export class WsClient {
       this.isConnected = true;
       this.retryMs = 800;
       this.onStatus(true);
+    });
+
+    this.socket.addEventListener("message", (event) => {
+      this.onMessage(event.data);
     });
 
     this.socket.addEventListener("close", () => {

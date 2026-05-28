@@ -4,7 +4,7 @@
 #include "src/camera_control.h"
 #include "src/config.h"
 #include "src/flashlight_control.h"
-#include "src/motor_control.h"
+#include "src/serial_bridge.h"
 #include "src/websocket_handler.h"
 
 namespace {
@@ -35,7 +35,9 @@ void setup() {
   Serial.print("WiFi RSSI: ");
   Serial.println(WiFi.RSSI());
 
-  motor_control_init();
+  // Initialize UART bridge to Arduino Uno (replaces motor_control_init).
+  serial_bridge_init();
+
   flashlight_init();
 
   if (!camera_control_init()) {
@@ -61,6 +63,7 @@ void setup() {
 }
 
 void loop() {
+  serial_bridge_tick();
   websocket_handler_tick(millis());
   delay(2);
 }

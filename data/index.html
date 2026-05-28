@@ -225,6 +225,70 @@
             </div>
           </div>
         </section>
+
+        <!-- 4. Telemetry (MPU6050) -->
+        <section class="telemetry glass" id="telemetry-section">
+          <div class="panel-header">
+            <div class="brand">
+              <span class="dot" id="sensor-dot"></span>
+              <div>
+                <span>Telemetry</span>
+                <div class="subtitle" id="sensor-status">Disconnected</div>
+              </div>
+            </div>
+            <span class="hint" id="tel-state">—</span>
+          </div>
+          <div class="telemetry-grid">
+            <div class="tel-item">
+              <div class="tel-label">
+                <svg viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" fill="none" class="tel-icon">
+                  <line x1="2" y1="12" x2="22" y2="12" />
+                  <polyline points="18 8 22 12 18 16" />
+                </svg>
+                X Axis
+              </div>
+              <span class="tel-value" id="tel-x">0.00</span>
+            </div>
+            <div class="tel-item">
+              <div class="tel-label">
+                <svg viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" fill="none" class="tel-icon">
+                  <line x1="12" y1="2" x2="12" y2="22" />
+                  <polyline points="8 18 12 22 16 18" />
+                </svg>
+                Y Axis
+              </div>
+              <span class="tel-value" id="tel-y">0.00</span>
+            </div>
+            <div class="tel-item">
+              <div class="tel-label">
+                <svg viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" fill="none" class="tel-icon">
+                  <circle cx="12" cy="12" r="3" />
+                  <path d="M12 2v4m0 12v4M2 12h4m12 0h4" />
+                </svg>
+                Z Axis
+              </div>
+              <span class="tel-value" id="tel-z">0.00</span>
+            </div>
+            <div class="tel-item">
+              <div class="tel-label">
+                <svg viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" fill="none" class="tel-icon">
+                  <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
+                </svg>
+                Accel
+              </div>
+              <span class="tel-value" id="tel-accel">0.00</span>
+            </div>
+            <div class="tel-item tel-wide">
+              <div class="tel-label">
+                <svg viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" fill="none" class="tel-icon">
+                  <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" />
+                </svg>
+                Tilt
+              </div>
+              <span class="tel-value" id="tel-tilt">—</span>
+            </div>
+          </div>
+        </section>
       </main>
     </div>
 

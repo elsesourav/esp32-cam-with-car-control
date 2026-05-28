@@ -407,6 +407,58 @@ svg {
   height: 100%;
 }
 
+/* Telemetry Section (MPU6050) */
+.telemetry {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.telemetry .panel-header {
+  margin-bottom: 4px;
+}
+.telemetry-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+.tel-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: rgba(4, 10, 20, 0.5);
+  border: 1px solid var(--stroke);
+  border-radius: 10px;
+  padding: 8px 12px;
+  transition: background 0.2s ease;
+}
+.tel-item.tel-wide {
+  grid-column: 1 / -1;
+}
+.tel-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--muted);
+}
+.tel-icon {
+  width: 14px;
+  height: 14px;
+  pointer-events: none;
+  flex-shrink: 0;
+}
+.tel-value {
+  font-family: monospace;
+  font-size: 13px;
+  color: var(--primary);
+  background: rgba(61, 214, 245, 0.08);
+  padding: 2px 8px;
+  border-radius: 6px;
+  min-width: 56px;
+  text-align: center;
+  transition: color 0.2s ease;
+}
+
 /* Popup */
 .popup-overlay {
   position: fixed;
@@ -473,6 +525,11 @@ svg {
 
   .settings,
   .controls {
+    flex: 1;
+    min-width: 250px;
+  }
+
+  .telemetry {
     flex: 1;
     min-width: 250px;
   }

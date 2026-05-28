@@ -1,0 +1,34 @@
+// camera.js — Camera start/stop/stream module.
+// Extracted from app.js for modularity.
+
+export function initCamera(elements, wsClient, buildMessage) {
+  function setCameraStream(enabled) {
+    elements.cameraStatus.textContent = enabled ? "LIVE" : "OFFLINE";
+    elements.cameraStatus.style.color = enabled ? "#3dd6f5" : "#ff5d5d";
+
+    if (enabled) {
+      elements.cameraStream.style.display = "block";
+      elements.cameraPlaceholder.style.display = "none";
+      elements.cameraStream.src = `http://${location.hostname}:81/stream?t=${Date.now()}`;
+    } else {
+      elements.cameraStream.style.display = "none";
+      elements.cameraPlaceholder.style.display = "flex";
+      elements.cameraStream.src = "";
+    }
+  }
+
+  elements.cameraStart.addEventListener("click", () => {
+    setCameraStream(true);
+    wsClient.send(buildMessage("camera", { action: "start" }));
+  });
+
+  elements.cameraStop.addEventListener("click", () => {
+    setCameraStream(false);
+    wsClient.send(buildMessage("camera", { action: "stop" }));
+  });
+
+  // Initialize as offline.
+  setCameraStream(false);
+
+  return { setCameraStream };
+}

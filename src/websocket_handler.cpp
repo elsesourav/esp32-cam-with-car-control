@@ -5,7 +5,7 @@
 #include "camera_control.h"
 #include "config.h"
 #include "flashlight_control.h"
-#include "motor_control.h"
+#include "serial_bridge.h"
 #include "movement_parser.h"
 
 #include "esp_http_server.h"
@@ -15,6 +15,12 @@
 namespace {
 httpd_handle_t g_httpd = NULL;
 MovementSettings g_settings;
+
+// Telemetry broadcast state.
+uint32_t g_last_telemetry_broadcast_ms = 0;
+
+// Cached telemetry string for comparing changes.
+char g_last_telemetry_str[128] = {0};
 
 const char *get_content_type(const char *path) {
   if (strstr(path, ".html")) {
@@ -69,6 +75,12 @@ esp_err_t file_handler(httpd_req_t *req) {
   } else if (strcmp(path, "/ui.js") == 0) {
     out_data = embedded_ui_js;
     out_len = embedded_ui_js_len;
+  } else if (strcmp(path, "/telemetry.js") == 0) {
+    out_data = embedded_telemetry_js;
+    out_len = embedded_telemetry_js_len;
+  } else if (strcmp(path, "/camera.js") == 0) {
+    out_data = embedded_camera_js;
+    out_len = embedded_camera_js_len;
   } else {
     Serial.print("Not found embedded: ");
     Serial.println(path);
@@ -89,12 +101,16 @@ esp_err_t file_handler(httpd_req_t *req) {
   return ESP_OK;
 }
 
+// --- Command timeout ---
+uint32_t g_last_command_ms = 0;
+
 void apply_movement_command(const MovementCommand &cmd) {
   if (!cmd.valid) {
     return;
   }
-  motor_control_set_differential(cmd.left_speed, cmd.right_speed);
-  motor_control_mark_command(millis());
+  // Forward the serial command to the Arduino Uno.
+  serial_bridge_send(cmd.serial_cmd);
+  g_last_command_ms = millis();
 }
 
 void handle_move(const char *payload) {
@@ -110,10 +126,18 @@ void handle_settings(const char *payload) {
   if (movement_get_value(payload, "drive", drive_val, sizeof(drive_val))) {
     float drive = atof(drive_val);
     g_settings.drive = constrain(drive, 0.1f, 1.5f);
+    // Forward drive sensitivity to Arduino
+    char cmd[32];
+    snprintf(cmd, sizeof(cmd), "DRIVE:%.2f", g_settings.drive);
+    serial_bridge_send(cmd);
   }
   if (movement_get_value(payload, "turn", turn_val, sizeof(turn_val))) {
     float turn = atof(turn_val);
     g_settings.turn = constrain(turn, 0.1f, 1.5f);
+    // Forward turn sensitivity to Arduino
+    char cmd[32];
+    snprintf(cmd, sizeof(cmd), "TURN:%.2f", g_settings.turn);
+    serial_bridge_send(cmd);
   }
 }
 
@@ -143,6 +167,50 @@ void handle_camera(const char *payload) {
   if (strcmp(action, "stop") == 0) {
     camera_control_set_stream_enabled(false);
   }
+}
+
+// --- Telemetry broadcast to WebSocket clients ---
+
+void broadcast_telemetry() {
+#ifdef CONFIG_HTTPD_WS_SUPPORT
+  if (!g_httpd) return;
+
+  const BridgeTelemetry *tel = serial_bridge_get_telemetry();
+
+  // Build the telemetry payload as URL-encoded string (same format the
+  // client already understands).
+  char payload[192];
+  snprintf(payload, sizeof(payload),
+           "type=telemetry&x=%.2f&y=%.2f&z=%.2f&a=%.2f&tilt=%s&state=%s&conn=%d",
+           tel->accel_x, tel->accel_y, tel->accel_z, tel->accel_total,
+           tel->tilt, tel->state, tel->connected ? 1 : 0);
+
+  // Only broadcast if data has changed.
+  if (strcmp(payload, g_last_telemetry_str) == 0) {
+    return;
+  }
+  strncpy(g_last_telemetry_str, payload, sizeof(g_last_telemetry_str) - 1);
+  g_last_telemetry_str[sizeof(g_last_telemetry_str) - 1] = '\0';
+
+  httpd_ws_frame_t frame;
+  memset(&frame, 0, sizeof(frame));
+  frame.type = HTTPD_WS_TYPE_TEXT;
+  frame.payload = reinterpret_cast<uint8_t *>(payload);
+  frame.len = strlen(payload);
+
+  // Send to all connected clients.
+  size_t clients = config::kHttpPort;  // max fd scan range
+  int fds[8];
+  size_t num_fds = sizeof(fds) / sizeof(fds[0]);
+
+  if (httpd_get_client_list(g_httpd, &num_fds, fds) == ESP_OK) {
+    for (size_t i = 0; i < num_fds; i++) {
+      if (httpd_ws_get_fd_info(g_httpd, fds[i]) == HTTPD_WS_CLIENT_WEBSOCKET) {
+        httpd_ws_send_frame_async(g_httpd, fds[i], &frame);
+      }
+    }
+  }
+#endif
 }
 
 esp_err_t ws_handler(httpd_req_t *req) {
@@ -242,5 +310,24 @@ bool websocket_handler_start_server() {
 }
 
 void websocket_handler_tick(uint32_t now_ms) {
-  motor_control_tick(now_ms);
+  // Command timeout safety: if no movement command received recently,
+  // send a STOP to the Arduino as a safety net.
+  static bool s_timeout_sent = false;
+
+  if (now_ms - g_last_command_ms > config::kCommandTimeoutMs) {
+    // Only send once after timeout expires, not every tick.
+    if (!s_timeout_sent) {
+      serial_bridge_send("MOVE:S");
+      s_timeout_sent = true;
+    }
+  } else {
+    // We're within the active window — allow the next timeout to fire.
+    s_timeout_sent = false;
+  }
+
+  // Broadcast telemetry to WebSocket clients periodically.
+  if (now_ms - g_last_telemetry_broadcast_ms > config::kTelemetryBroadcastMs) {
+    g_last_telemetry_broadcast_ms = now_ms;
+    broadcast_telemetry();
+  }
 }

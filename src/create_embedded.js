@@ -7,7 +7,9 @@ const files = [
     "app.js",
     "joystick.js",
     "websocket.js",
-    "ui.js"
+    "ui.js",
+    "telemetry.js",
+    "camera.js"
 ];
 
 const out = ["#pragma once", "", "#include <Arduino.h>", ""];

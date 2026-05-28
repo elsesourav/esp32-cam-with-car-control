@@ -2,6 +2,7 @@
 
 #include "config.h"
 #include <string.h>
+#include <stdio.h>
 
 namespace {
 int clamp_int(int value, int min_value, int max_value) {
@@ -48,6 +49,20 @@ bool parse_float(const char *text, float *out) {
   return true;
 }
 
+// Maps a direction string to a short serial code for the Arduino.
+const char *dir_to_serial_code(const char *dir) {
+  if (strcmp(dir, "STOP") == 0)           return "S";
+  if (strcmp(dir, "FORWARD") == 0)        return "F";
+  if (strcmp(dir, "BACKWARD") == 0)       return "B";
+  if (strcmp(dir, "LEFT") == 0)           return "L";
+  if (strcmp(dir, "RIGHT") == 0)          return "R";
+  if (strcmp(dir, "FORWARD_LEFT") == 0)   return "FL";
+  if (strcmp(dir, "FORWARD_RIGHT") == 0)  return "FR";
+  if (strcmp(dir, "BACKWARD_LEFT") == 0)  return "BL";
+  if (strcmp(dir, "BACKWARD_RIGHT") == 0) return "BR";
+  return nullptr;
+}
+
 MovementCommand from_direction(const char *dir, int speed, int turn) {
   MovementCommand cmd;
   cmd.valid = true;
@@ -55,46 +70,55 @@ MovementCommand from_direction(const char *dir, int speed, int turn) {
   if (strcmp(dir, "STOP") == 0) {
     cmd.left_speed = 0;
     cmd.right_speed = 0;
+    snprintf(cmd.serial_cmd, sizeof(cmd.serial_cmd), "MOVE:S");
     return cmd;
   }
   if (strcmp(dir, "FORWARD") == 0) {
     cmd.left_speed = speed;
     cmd.right_speed = speed;
+    snprintf(cmd.serial_cmd, sizeof(cmd.serial_cmd), "MOVE:F");
     return cmd;
   }
   if (strcmp(dir, "BACKWARD") == 0) {
     cmd.left_speed = -speed;
     cmd.right_speed = -speed;
+    snprintf(cmd.serial_cmd, sizeof(cmd.serial_cmd), "MOVE:B");
     return cmd;
   }
   if (strcmp(dir, "LEFT") == 0) {
     cmd.left_speed = -speed;
     cmd.right_speed = speed;
+    snprintf(cmd.serial_cmd, sizeof(cmd.serial_cmd), "MOVE:L");
     return cmd;
   }
   if (strcmp(dir, "RIGHT") == 0) {
     cmd.left_speed = speed;
     cmd.right_speed = -speed;
+    snprintf(cmd.serial_cmd, sizeof(cmd.serial_cmd), "MOVE:R");
     return cmd;
   }
   if (strcmp(dir, "FORWARD_LEFT") == 0) {
     cmd.left_speed = speed - turn;
     cmd.right_speed = speed + turn;
+    snprintf(cmd.serial_cmd, sizeof(cmd.serial_cmd), "MOVE:FL");
     return cmd;
   }
   if (strcmp(dir, "FORWARD_RIGHT") == 0) {
     cmd.left_speed = speed + turn;
     cmd.right_speed = speed - turn;
+    snprintf(cmd.serial_cmd, sizeof(cmd.serial_cmd), "MOVE:FR");
     return cmd;
   }
   if (strcmp(dir, "BACKWARD_LEFT") == 0) {
     cmd.left_speed = -(speed - turn);
     cmd.right_speed = -(speed + turn);
+    snprintf(cmd.serial_cmd, sizeof(cmd.serial_cmd), "MOVE:BL");
     return cmd;
   }
   if (strcmp(dir, "BACKWARD_RIGHT") == 0) {
     cmd.left_speed = -(speed + turn);
     cmd.right_speed = -(speed - turn);
+    snprintf(cmd.serial_cmd, sizeof(cmd.serial_cmd), "MOVE:BR");
     return cmd;
   }
 
@@ -170,6 +194,10 @@ MovementCommand movement_parse_command(const char *payload, const MovementSettin
 
     cmd.left_speed = clamp_int(left_pwm, -config::kMotorMaxPwm, config::kMotorMaxPwm);
     cmd.right_speed = clamp_int(right_pwm, -config::kMotorMaxPwm, config::kMotorMaxPwm);
+
+    // Format as differential command for the Arduino
+    snprintf(cmd.serial_cmd, sizeof(cmd.serial_cmd), "DIFF:%d,%d",
+             cmd.left_speed, cmd.right_speed);
     cmd.valid = true;
     return cmd;
   }
