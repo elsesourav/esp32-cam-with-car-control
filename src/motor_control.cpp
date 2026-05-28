@@ -4,66 +4,47 @@
 #include "esp32-hal-ledc.h"
 
 namespace {
-struct MotorPairPins {
-  int in1;
-  int in2;
-  int ena;
-  int in3;
-  int in4;
-  int enb;
+struct MotorPins {
+  int direction;
+  int pwm;
 };
 
-const MotorPairPins kLeftPins{
-  config::kLeftIn1,
-  config::kLeftIn2,
-  config::kLeftEna,
-  config::kLeftIn3,
-  config::kLeftIn4,
-  config::kLeftEnb,
-};
-
-const MotorPairPins kRightPins{
-  config::kRightIn1,
-  config::kRightIn2,
-  config::kRightEna,
-  config::kRightIn3,
-  config::kRightIn4,
-  config::kRightEnb,
-};
+const MotorPins kMotorAPins{config::kMotorAFwd, config::kMotorAPwm};
+const MotorPins kMotorBPins{config::kMotorBFwd, config::kMotorBPwm};
+const MotorPins kMotorCPins{config::kMotorCFwd, config::kMotorCPwm};
+const MotorPins kMotorDPins{config::kMotorDFwd, config::kMotorDPwm};
 
 uint32_t g_last_command_ms = 0;
 
-void setup_motor_pair(const MotorPairPins &pins) {
-  pinMode(pins.in1, OUTPUT);
-  pinMode(pins.in2, OUTPUT);
-  pinMode(pins.in3, OUTPUT);
-  pinMode(pins.in4, OUTPUT);
+void setup_motor(const MotorPins &pins, bool safe_high = false) {
+  pinMode(pins.direction, OUTPUT);
+  pinMode(pins.pwm, OUTPUT);
 
-  ledcAttach(pins.ena, config::kMotorPwmFreq, config::kMotorPwmResolution);
-  ledcAttach(pins.enb, config::kMotorPwmFreq, config::kMotorPwmResolution);
+  // Put boot-sensitive pins in a safe default before attaching PWM.
+  if (safe_high) {
+    digitalWrite(pins.direction, HIGH);
+  } else {
+    digitalWrite(pins.direction, LOW);
+  }
+
+  ledcAttach(pins.pwm, config::kMotorPwmFreq, config::kMotorPwmResolution);
 }
 
-void set_motor_output(const MotorPairPins &pins, int speed) {
+void set_one_motor(const MotorPins &pins, int speed) {
   int duty = abs(speed);
   if (duty > config::kMotorMaxPwm) {
     duty = config::kMotorMaxPwm;
   }
 
-  bool forward = speed > 0;
-  bool backward = speed < 0;
-
-  digitalWrite(pins.in1, forward ? HIGH : LOW);
-  digitalWrite(pins.in2, backward ? HIGH : LOW);
-  digitalWrite(pins.in3, forward ? HIGH : LOW);
-  digitalWrite(pins.in4, backward ? HIGH : LOW);
-
   if (speed == 0) {
-    ledcWrite(pins.ena, 0);
-    ledcWrite(pins.enb, 0);
-  } else {
-    ledcWrite(pins.ena, duty);
-    ledcWrite(pins.enb, duty);
+    ledcWrite(pins.pwm, 0);
+    // Keep output direction stable while stopped.
+    return;
   }
+
+  const bool forward = speed > 0;
+  digitalWrite(pins.direction, forward ? HIGH : LOW);
+  ledcWrite(pins.pwm, duty);
 }
 
 int clamp_pwm(int value) {
@@ -78,8 +59,11 @@ int clamp_pwm(int value) {
 }  // namespace
 
 void motor_control_init() {
-  setup_motor_pair(kLeftPins);
-  setup_motor_pair(kRightPins);
+  setup_motor(kMotorAPins, false);
+  setup_motor(kMotorBPins, false);
+  setup_motor(kMotorCPins, false);
+  setup_motor(kMotorDPins, false);
+
   motor_control_stop();
   g_last_command_ms = millis();
 }
@@ -109,13 +93,18 @@ void motor_control_set_differential(int left_speed, int right_speed) {
     s_last_right = right;
   }
 
-  set_motor_output(kLeftPins, left);
-  set_motor_output(kRightPins, right);
+  // A and C are left side, B and D are right side.
+  set_one_motor(kMotorAPins, left);
+  set_one_motor(kMotorCPins, left);
+  set_one_motor(kMotorBPins, right);
+  set_one_motor(kMotorDPins, right);
 }
 
 void motor_control_stop() {
-  set_motor_output(kLeftPins, 0);
-  set_motor_output(kRightPins, 0);
+  set_one_motor(kMotorAPins, 0);
+  set_one_motor(kMotorBPins, 0);
+  set_one_motor(kMotorCPins, 0);
+  set_one_motor(kMotorDPins, 0);
 }
 
 void motor_control_forward(uint8_t speed) {

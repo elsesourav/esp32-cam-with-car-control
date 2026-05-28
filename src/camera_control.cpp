@@ -102,8 +102,8 @@ static esp_err_t stream_handler(httpd_req_t *req) {
 
 bool camera_control_init() {
   camera_config_t config;
-  config.ledc_channel = LEDC_CHANNEL_0;
-  config.ledc_timer = LEDC_TIMER_0;
+  config.ledc_channel = LEDC_CHANNEL_7;
+  config.ledc_timer = LEDC_TIMER_3;
   config.pin_d0 = Y2_GPIO_NUM;
   config.pin_d1 = Y3_GPIO_NUM;
   config.pin_d2 = Y4_GPIO_NUM;
@@ -121,7 +121,7 @@ bool camera_control_init() {
   config.pin_pwdn = PWDN_GPIO_NUM;
   config.pin_reset = RESET_GPIO_NUM;
   config.xclk_freq_hz = 20000000;
-  config.frame_size = FRAMESIZE_VGA;
+  config.frame_size = FRAMESIZE_QVGA;
   config.pixel_format = PIXFORMAT_RGB565;
   config.grab_mode = CAMERA_GRAB_WHEN_EMPTY;
   config.fb_location = CAMERA_FB_IN_PSRAM;
@@ -141,7 +141,7 @@ bool camera_control_init() {
 
   sensor_t *s = esp_camera_sensor_get();
   if (s && s->id.PID == OV2640_PID) {
-    s->set_framesize(s, FRAMESIZE_VGA); // Match config frame size
+    s->set_framesize(s, FRAMESIZE_QVGA); // Match config frame size
   }
 
   return true;

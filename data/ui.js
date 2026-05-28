@@ -20,6 +20,9 @@ export function initUI() {
     popup: document.getElementById("confirm-popup"),
     popupCancel: document.getElementById("popup-cancel"),
     popupConfirm: document.getElementById("popup-confirm"),
+    valDrive: document.getElementById("val-drive"),
+    valTurn: document.getElementById("val-turn"),
+    valLight: document.getElementById("val-light"),
   };
 
   return elements;
@@ -72,8 +75,13 @@ export function showConfirmPopup(elements, onConfirm) {
     elements.popupCancel.removeEventListener("click", cancelHandler);
   };
 
-  const confirmHandler = () => { cleanup(); onConfirm(); };
-  const cancelHandler = () => { cleanup(); };
+  const confirmHandler = () => {
+    cleanup();
+    onConfirm();
+  };
+  const cancelHandler = () => {
+    cleanup();
+  };
 
   elements.popupConfirm.addEventListener("click", confirmHandler);
   elements.popupCancel.addEventListener("click", cancelHandler);
