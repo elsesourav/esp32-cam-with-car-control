@@ -20,7 +20,7 @@ constexpr char kWsPath[] = "/ws";
 // with the camera, PSRAM, or flashlight.
 constexpr int kBridgeTxPin = 14;
 constexpr int kBridgeRxPin = 15;
-constexpr uint32_t kBridgeBaud = 38400;
+constexpr uint32_t kBridgeBaud = 9600;
 
 // Motor command timeout — if no new command arrives within this time,
 // the Arduino Uno will auto-stop motors. The ESP32 also re-sends STOP

@@ -8,7 +8,7 @@
 // Connected to ESP32-CAM UART2 (GPIO 14 TX, GPIO 15 RX)
 #define BRIDGE_RX_PIN   10   // Arduino pin 10 receives from ESP32 TX
 #define BRIDGE_TX_PIN   11   // Arduino pin 11 transmits to ESP32 RX
-#define BRIDGE_BAUD     38400
+#define BRIDGE_BAUD     9600
 
 // --- L298N Motor Driver #1 (Left Side) ---
 // Controls Front-Left and Rear-Left motors (wired in parallel)
