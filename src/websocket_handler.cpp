@@ -106,8 +106,13 @@ uint32_t g_last_command_ms = 0;
 
 void apply_movement_command(const MovementCommand &cmd) {
   if (!cmd.valid) {
+    Serial.println("[UART Warning] Movement command was invalid, discarding!");
     return;
   }
+  
+  Serial.print("[UART] Sending to bridge: ");
+  Serial.println(cmd.serial_cmd);
+  
   // Forward the serial command to the Arduino Uno.
   serial_bridge_send(cmd.serial_cmd);
   g_last_command_ms = millis();
@@ -248,15 +253,28 @@ esp_err_t ws_handler(httpd_req_t *req) {
 
   char type[16] = {0};
   if (movement_get_value(payload, "type", type, sizeof(type))) {
+    // Only log non-telemetry requests to prevent console spam
+    if (strcmp(type, "telemetry") != 0) {
+      Serial.print("[WS] Recv: ");
+      Serial.println(payload);
+    }
+    
     if (strcmp(type, "move") == 0) {
+      Serial.println("[ROUTER] Routing to handle_move");
       handle_move(payload);
     } else if (strcmp(type, "flash") == 0) {
+      Serial.println("[ROUTER] Routing to handle_flashlight");
       handle_flashlight(payload);
     } else if (strcmp(type, "camera") == 0) {
+      Serial.println("[ROUTER] Routing to handle_camera");
       handle_camera(payload);
     } else if (strcmp(type, "settings") == 0) {
+      Serial.println("[ROUTER] Routing to handle_settings");
       handle_settings(payload);
     }
+  } else {
+    Serial.print("[WS Warning] Missing 'type' in payload: ");
+    Serial.println(payload);
   }
 
   free(payload);

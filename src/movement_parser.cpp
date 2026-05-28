@@ -156,32 +156,31 @@ bool movement_get_value(const char *payload, const char *key, char *out, size_t 
 
 MovementCommand movement_parse_command(const char *payload, const MovementSettings &settings) {
   MovementCommand cmd;
-
-  char type[16] = {0};
-  if (!movement_get_value(payload, "type", type, sizeof(type))) {
-    return cmd;
-  }
-
-  if (strcmp(type, "move") != 0) {
-    return cmd;
-  }
-
+  cmd.valid = false;
   char mode[16] = {0};
-  movement_get_value(payload, "mode", mode, sizeof(mode));
+
+  if (!movement_get_value(payload, "mode", mode, sizeof(mode))) {
+    Serial.println("[PARSER Warning] Missing 'mode' in payload");
+    return cmd;
+  }
 
   if (strcmp(mode, "joystick") == 0) {
     char x_val[16] = {0};
     char y_val[16] = {0};
     if (!movement_get_value(payload, "x", x_val, sizeof(x_val)) ||
         !movement_get_value(payload, "y", y_val, sizeof(y_val))) {
+      Serial.println("[PARSER Warning] Missing 'x' or 'y' for joystick mode");
       return cmd;
     }
 
-    int x = 0;
-    int y = 0;
-    if (!parse_int(x_val, &x) || !parse_int(y_val, &y)) {
-      return cmd;
-    }
+    float x = 0, y = 0;
+    parse_float(x_val, &x);
+    parse_float(y_val, &y);
+    
+    Serial.print("[PARSER] Mode: JOYSTICK, Raw X: ");
+    Serial.print(x);
+    Serial.print(", Raw Y: ");
+    Serial.println(y);
 
     float nx = clamp_float(x / 100.0f, -1.0f, 1.0f) * settings.turn;
     float ny = clamp_float(y / 100.0f, -1.0f, 1.0f) * settings.drive;
@@ -198,6 +197,10 @@ MovementCommand movement_parse_command(const char *payload, const MovementSettin
     // Format as differential command for the Arduino
     snprintf(cmd.serial_cmd, sizeof(cmd.serial_cmd), "DIFF:%d,%d",
              cmd.left_speed, cmd.right_speed);
+             
+    Serial.print("[PARSER] Parsed JOYSTICK to -> ");
+    Serial.println(cmd.serial_cmd);
+    
     cmd.valid = true;
     return cmd;
   }
@@ -206,6 +209,7 @@ MovementCommand movement_parse_command(const char *payload, const MovementSettin
   char speed_val[16] = {0};
   char turn_val[16] = {0};
   if (!movement_get_value(payload, "dir", dir, sizeof(dir))) {
+    Serial.println("[PARSER Warning] Missing 'dir' for button mode");
     return cmd;
   }
 
@@ -218,9 +222,22 @@ MovementCommand movement_parse_command(const char *payload, const MovementSettin
   if (movement_get_value(payload, "turn", turn_val, sizeof(turn_val))) {
     parse_int(turn_val, &turn);
   }
+  
+  Serial.print("[PARSER] Mode: BUTTON, Dir: ");
+  Serial.print(dir);
+  Serial.print(", Speed: ");
+  Serial.print(speed);
+  Serial.print(", Turn: ");
+  Serial.println(turn);
 
-  speed = clamp_int(speed, 0, config::kMotorMaxPwm);
-  turn = clamp_int(turn, 0, config::kMotorMaxPwm);
-
-  return from_direction(dir, speed, turn);
+  cmd = from_direction(dir, speed, turn);
+  
+  if (cmd.valid) {
+    Serial.print("[PARSER] Parsed BUTTON to -> ");
+    Serial.println(cmd.serial_cmd);
+  } else {
+    Serial.println("[PARSER Warning] from_direction returned invalid command!");
+  }
+  
+  return cmd;
 }
