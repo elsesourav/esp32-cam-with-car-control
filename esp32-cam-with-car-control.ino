@@ -29,7 +29,9 @@ void connect_wifi() {
 }  // namespace
 
 void setup() {
-  Serial.begin(115200);
+  // Pass -1 for the RX pin so that GPIO 3 is NOT used by the Serial Monitor.
+  // This frees up GPIO 3 to be used as the Right Motor Backward PWM output!
+  Serial.begin(115200, SERIAL_8N1, -1, 1);
   Serial.setDebugOutput(true);
 
   connect_wifi();
@@ -43,7 +45,7 @@ void setup() {
 
   if (!camera_control_init()) {
     Serial.println("[BOOT ERROR] Camera init failed");
-  }
+  } 
 
   // MUST initialize I2C after camera init to avoid bus conflict
   mpu6050_init();
