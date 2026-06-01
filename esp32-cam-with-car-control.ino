@@ -72,5 +72,5 @@ void loop() {
   motor_control_tick();
   mpu6050_tick();
   websocket_handler_tick(millis());
-  delay(2);
+  delay(1);  // Reduced from 2ms for faster motor/control responsiveness
 }

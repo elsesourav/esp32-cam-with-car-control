@@ -18,8 +18,13 @@ export function initCamera(elements, wsClient, buildMessage) {
   }
 
   elements.cameraStart.addEventListener("click", () => {
-    setCameraStream(true);
+    // 1. Tell ESP32 to power on the camera hardware
     wsClient.send(buildMessage("camera", { action: "start" }));
+    
+    // 2. Wait 800ms for hardware to boot up, THEN fetch the stream
+    setTimeout(() => {
+      setCameraStream(true);
+    }, 800);
   });
 
   elements.cameraStop.addEventListener("click", () => {

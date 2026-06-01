@@ -36,6 +36,13 @@ export function initUI() {
     telState: document.getElementById("tel-state"),
   };
 
+  // Initialize collapsible sections
+  document.querySelectorAll(".collapsible .panel-header").forEach((header) => {
+    header.addEventListener("click", () => {
+      header.parentElement.classList.toggle("collapsed");
+    });
+  });
+
   return elements;
 }
 

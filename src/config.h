@@ -45,6 +45,10 @@ constexpr uint32_t kMpuReadIntervalMs = 100;  // Read sensor every 100ms
 // Telemetry broadcast interval (ms)
 constexpr uint32_t kTelemetryBroadcastMs = 200;
 
+// Camera stream frame pacing (ms between frames).
+// 250ms = 4 FPS — smoother stream now that resolution is reduced
+constexpr uint32_t kStreamFrameDelayMs = 250;
+
 // --- Flashlight ---
 // Uses the ESP32-CAM onboard flash LED (GPIO 4).
 constexpr uint8_t kFlashlightPwmFreq = 5000;

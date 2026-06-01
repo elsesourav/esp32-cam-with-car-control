@@ -20,7 +20,7 @@ export function createJoystick(zone, knob, { onMove, onEnd }) {
     setKnob(x, y);
 
     const normX = Math.round((x / maxRadius) * 100);
-    const normY = Math.round((y / maxRadius) * 100);
+    const normY = -Math.round((y / maxRadius) * 100);
     onMove({ x: normX, y: normY });
   }
 

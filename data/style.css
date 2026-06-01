@@ -142,6 +142,34 @@ svg {
   margin-bottom: 10px;
 }
 
+/* Collapsible Sections */
+.collapsible .panel-header {
+  cursor: pointer;
+  user-select: none;
+  margin-bottom: 0; /* Reset margin, managed by panel-content padding if needed, but inner has gap */
+  padding-bottom: 10px;
+}
+.chevron {
+  width: 16px;
+  height: 16px;
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  color: var(--muted);
+}
+.collapsed .chevron {
+  transform: rotate(-90deg);
+}
+.panel-content {
+  display: grid;
+  grid-template-rows: 1fr;
+  transition: grid-template-rows 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.panel-content-inner {
+  overflow: hidden;
+}
+.collapsed .panel-content {
+  grid-template-rows: 0fr;
+}
+
 .status {
   font-size: 12px;
   color: var(--danger);
