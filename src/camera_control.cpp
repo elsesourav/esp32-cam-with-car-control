@@ -78,9 +78,9 @@ static esp_err_t stream_handler(httpd_req_t *req) {
       break;
     }
 
-    // Frame pacing: yield CPU to motor/websocket tasks between frames.
-    // ~700ms delay gives ~1.4 FPS — prioritizes control responsiveness.
-    delay(config::kStreamFrameDelayMs);
+    // Minimal yield to let other tasks (motor, websocket) run.
+    // No artificial frame-pacing delay — run as fast as WiFi allows.
+    delay(1);
   }
   return res;
 }
@@ -110,13 +110,18 @@ bool camera_control_init() {
   g_camera_config.pin_reset = RESET_GPIO_NUM;
   g_camera_config.xclk_freq_hz = 20000000;
 
-  // New camera supports hardware JPEG compression, enabling higher resolution (VGA)
-  g_camera_config.frame_size = FRAMESIZE_VGA; // if jpeg not support then use FRAMESIZE_QQVGA
-  g_camera_config.pixel_format = PIXFORMAT_JPEG; // if jpeg not support then use PIXFORMAT_RGB565
-  g_camera_config.grab_mode = CAMERA_GRAB_WHEN_EMPTY;
+  // Hardware JPEG: camera sensor compresses internally, zero CPU cost.
+  // QVGA (320x240) is the sweet spot for speed — 4x less data than VGA
+  // while still being perfectly usable for driving.
+  g_camera_config.frame_size = FRAMESIZE_QVGA;    // if jpeg not support then use FRAMESIZE_QQVGA
+  g_camera_config.pixel_format = PIXFORMAT_JPEG;   // if jpeg not support then use PIXFORMAT_RGB565
+  // GRAB_LATEST discards stale buffered frames, always sends the newest capture
+  g_camera_config.grab_mode = CAMERA_GRAB_LATEST;
   g_camera_config.fb_location = CAMERA_FB_IN_PSRAM;
-  g_camera_config.jpeg_quality = 12;
-  g_camera_config.fb_count = 1;
+  // Higher number = more compression = smaller files = faster WiFi transfer
+  g_camera_config.jpeg_quality = 20;
+  // 2 framebuffers: camera captures into one while we transmit the other (double-buffering)
+  g_camera_config.fb_count = 2;
 
   if (!psramFound()) {
     g_camera_config.fb_location = CAMERA_FB_IN_DRAM;
@@ -153,8 +158,13 @@ void camera_control_set_stream_enabled(bool enabled) {
     if (err == ESP_OK) {
       g_camera_is_inited = true;
       sensor_t *s = esp_camera_sensor_get();
-      if (s && s->id.PID == OV2640_PID) {
-        s->set_framesize(s, FRAMESIZE_VGA);
+      if (s) {
+        if (s->id.PID == OV2640_PID) {
+          s->set_framesize(s, FRAMESIZE_QVGA);
+        }
+        // 180-degree flip at the hardware level (zero CPU cost)
+        s->set_vflip(s, 1);
+        s->set_hmirror(s, 1);
       }
     } else {
       Serial.println("Camera hardware init failed!");
