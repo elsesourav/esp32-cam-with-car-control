@@ -110,9 +110,9 @@ bool camera_control_init() {
   g_camera_config.pin_reset = RESET_GPIO_NUM;
   g_camera_config.xclk_freq_hz = 20000000;
 
-  // Use QQVGA (160x120) to drastically reduce software frame2jpg processing time
-  g_camera_config.frame_size = FRAMESIZE_QQVGA;
-  g_camera_config.pixel_format = PIXFORMAT_RGB565; // User's sensor does not support hardware JPEG
+  // New camera supports hardware JPEG compression, enabling higher resolution (VGA)
+  g_camera_config.frame_size = FRAMESIZE_VGA; // if jpeg not support then use FRAMESIZE_QQVGA
+  g_camera_config.pixel_format = PIXFORMAT_JPEG; // if jpeg not support then use PIXFORMAT_RGB565
   g_camera_config.grab_mode = CAMERA_GRAB_WHEN_EMPTY;
   g_camera_config.fb_location = CAMERA_FB_IN_PSRAM;
   g_camera_config.jpeg_quality = 12;
@@ -154,7 +154,7 @@ void camera_control_set_stream_enabled(bool enabled) {
       g_camera_is_inited = true;
       sensor_t *s = esp_camera_sensor_get();
       if (s && s->id.PID == OV2640_PID) {
-        s->set_framesize(s, FRAMESIZE_QQVGA);
+        s->set_framesize(s, FRAMESIZE_VGA);
       }
     } else {
       Serial.println("Camera hardware init failed!");
